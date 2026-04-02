@@ -6,9 +6,7 @@ from datetime import datetime
 
 def download_inmet_data(region="S"):
     bucket_name = os.getenv("BRONZE_BUCKET")
-    
-    # Endpoint mais robusto: Dados de todas as estações em uma data específica
-    # Formato: https://apitempo.inmet.gov.br/estacao/dados/YYYY-MM-DD
+
     today = datetime.now().strftime('%Y-%m-%d')
     url = f"https://apitempo.inmet.gov.br/estacoes/T"
     
@@ -17,7 +15,6 @@ def download_inmet_data(region="S"):
     
     if response.status_code != 200:
         print(f"Erro na API: {response.status_code} - {response.text}")
-        # Se a API falhar, vamos criar um dado fake apenas para validar o S3
         print("Usando dado de fallback para validar pipeline...")
         df = pd.DataFrame({"msg": ["API INMET indisponível"], "data": [today]})
     else:
