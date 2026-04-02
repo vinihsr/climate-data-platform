@@ -1,0 +1,30 @@
+# Secrets e Configurações locais
+.env
+*.env
+.aws/
+credentials/
+
+# Python
+__pycache__/
+*.py[cod]
+*.class
+.venv/
+env/
+venv/
+.pytest_cache/
+
+# Airflow (Arquivos gerados localmente)
+airflow/logs/
+airflow/plugins/
+standalone_admin_password.txt
+airflow-webserver.pid
+
+# Terraform (Binários e Estado com dados sensíveis)
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+terraform.tfvars
+
+# Sistema
+.DS_Store
