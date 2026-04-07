@@ -1,4 +1,4 @@
-# climate-data-platform
+# Climate-data-platform
 
 Este projeto disponibiliza uma pipeline end-to-end usando AWS (s3, Glue e Athena), Airflow, Terraform, Docker e dbt. A ideia é fazer a ingestão de três API publicas: ANA, INMET e IBGE e através de uma arquitetura medalion trazer insights relacionando a chuva com o nível de água nos reservatórios por região. 
 
@@ -10,12 +10,12 @@ Imagens do desenvolvimento da camada bronze:
 ---
 
 Dags após a finalização do processo de ingestão e trigger:
-![Dags Pic](../climate_platform/screenshots/image.png)
+![Dags Pic](screenshots/image.png)
 
 Terraform configurado:
-![Tf Pic](../climate_platform/screenshots/Screenshot%20from%202026-03-31%2011-45-28.png)
+![Tf Pic](screenshots/Screenshot%20from%202026-03-31%2011-45-28.png)
 
 Crawlers disparados com sucesso:
-![Glue Pic](../climate_platform/screenshots/Screenshot%20from%202026-04-06%2022-54-25.png)
+![Glue Pic](screenshots/Screenshot%20from%202026-04-06%2022-54-25.png)
 
 Demais configurações envolvem: IAM e Airflow connections (explicado mais a frente).
