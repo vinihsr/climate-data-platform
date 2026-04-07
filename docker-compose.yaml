@@ -37,8 +37,6 @@ services:
     build: .
     image: apache/airflow:2.7.1-python3.9
     command: webserver
-    # MUDANÇA 4: O Webserver agora espera o 'airflow-init' terminar com SUCESSO.
-    # Isso evita o erro de "relation log does not exist".
     depends_on:
       airflow-init:
         condition: service_completed_successfully
