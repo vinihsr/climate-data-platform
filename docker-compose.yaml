@@ -6,8 +6,6 @@ services:
       - POSTGRES_USER=airflow
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_DB=airflow
-    # MUDANÇA 1: Adicionado healthcheck para garantir que o banco está pronto 
-    # antes de qualquer serviço do Airflow tentar se conectar.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U airflow"]
       interval: 5s
@@ -17,7 +15,6 @@ services:
   airflow-init:
     build: .
     image: apache/airflow:2.7.1-python3.9
-    # MUDANÇA 2: Usando entrypoint bash para garantir que os comandos de DB rodem em sequência.
     entrypoint: /bin/bash
     command:
       - -c
@@ -27,8 +24,6 @@ services:
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      
-    # MUDANÇA 3: Só inicia o init quando o postgres passar no healthcheck.
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,31 +39,55 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/scripts:/opt/airflow/scripts
       - ./requirements.txt:/requirements.txt
-      - ./airflow/logs:/opt/airflow/logs  # <-- ADICIONE ESTA LINHA
+      - ./airflow/logs:/opt/airflow/logs  
     ports:
       - "8080:8080"
     env_file:
       - .env
     environment:
-      # MUDANÇA 5: Corrigido de CORE para DATABASE (padrão Airflow 2.3+).
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=us-east-1
 
   airflow-scheduler:
     build: .
     image: apache/airflow:2.7.1-python3.9
     command: scheduler
-    # MUDANÇA 6: O Scheduler também espera o init terminar.
     depends_on:
       airflow-init:
         condition: service_completed_successfully
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/scripts:/opt/airflow/scripts
-      - ./airflow/logs:/opt/airflow/logs  # <-- ADICIONE ESTA LINHA
+      - ./airflow/logs:/opt/airflow/logs  
     env_file:
       - .env
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=us-east-1
+
+  airflow-triggerer:
+    build: .
+    image: apache/airflow:2.7.1-python3.9
+    command: triggerer
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/scripts:/opt/airflow/scripts
+      - ./airflow/logs:/opt/airflow/logs
+    env_file:
+      - .env
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=us-east-1
