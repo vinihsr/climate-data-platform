@@ -3,7 +3,7 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import sys
 from airflow.providers.amazon.aws.operators.glue_crawler import GlueCrawlerOperator
-
+from constants import DS_INMET_BRONZE 
 sys.path.append('/opt/airflow/')
 from scripts.extract_inmet import download_inmet_data
 
@@ -38,5 +38,7 @@ with DAG (
         wait_for_completion=True,    
         dag=dag,
     )
+
+    trigger_inmet_crawler.out_datasets = [DS_INMET_BRONZE]
 
     ingest_task >> trigger_inmet_crawler

@@ -3,7 +3,7 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import sys
 from airflow.providers.amazon.aws.operators.glue_crawler import GlueCrawlerOperator
-
+from constants import DS_ANA_BRONZE
 sys.path.append('/opt/airflow/')
 from scripts.extract_ana import download_ana_data
 
@@ -38,5 +38,7 @@ with DAG (
         wait_for_completion=True,    
         dag=dag,         
     )
+
+    trigger_ana_crawler.out_datasets = [DS_ANA_BRONZE]
 
     ingest_task >> trigger_ana_crawler

@@ -45,37 +45,52 @@ with DAG(
         format = 'PARQUET',
         external_location = 's3://climate-platform-silver-vinicius/silver/dim_estacoes/'
         ) AS
+        WITH 
+        ibge_cleaned AS (
+            SELECT 
+                SUBSTR(TRIM(CAST(codigo_ibge AS VARCHAR)), 1, 6) as join_key,
+                codigo_ibge,
+                nome_municipio,
+                nome_municipio_search,
+                uf_sigla,
+                regiao_nome
+            FROM "climate_platform_bronze"."source_ibge"
+        ),
+        ana_prepared AS (
+            SELECT 
+                CAST(codigo AS VARCHAR) as estacao_id,
+                nome as estacao_nome,
+                'ANA' as fonte,
+                CAST(tipoestacao AS VARCHAR) as tipo_estacao_id,
+                TRY_CAST(latitude AS DOUBLE) as lat,
+                TRY_CAST(longitude AS DOUBLE) as lon,
+                SUBSTR(TRIM(CAST(municipiocodigo AS VARCHAR)), 1, 6) as join_key
+            FROM "climate_platform_bronze"."source_ana"
+        ),
+        inmet_prepared AS (
+            SELECT 
+                CAST(cd_estacao AS VARCHAR) as estacao_id,
+                dc_nome as estacao_nome,
+                'INMET' as fonte,
+                NULL as tipo_estacao_id,
+                TRY_CAST(REPLACE(vl_latitude, ',', '.') AS DOUBLE) as lat,
+                TRY_CAST(REPLACE(vl_longitude, ',', '.') AS DOUBLE) as lon,
+                TRIM(UPPER(dc_nome)) as join_key_name
+            FROM "climate_platform_bronze"."source_inmet"
+        )
         SELECT 
-            CAST(a.codigo AS VARCHAR) as estacao_id,
-            a.nome as estacao_nome,
-            'ANA' as fonte,
-            CAST(a.tipoestacao AS VARCHAR) as tipo_estacao_id,
-            TRY_CAST(a.latitude AS DOUBLE) as lat,   -- Forçando DOUBLE
-            TRY_CAST(a.longitude AS DOUBLE) as lon, -- Forçando DOUBLE
-            CAST(i.codigo_ibge AS VARCHAR) as codigo_ibge,
-            i.nome_municipio,
-            i.uf_sigla,
-            i.regiao_nome
-        FROM "climate_platform_bronze"."source_ana" a
-        JOIN "climate_platform_bronze"."source_ibge" i 
-            ON CAST(a.municipiocodigo AS VARCHAR) = CAST(i.codigo_ibge AS VARCHAR)
+            a.estacao_id, a.estacao_nome, a.fonte, a.tipo_estacao_id, a.lat, a.lon,
+            i.codigo_ibge, i.nome_municipio, i.uf_sigla, i.regiao_nome
+        FROM ana_prepared a
+        JOIN ibge_cleaned i ON a.join_key = i.join_key
 
         UNION ALL
 
         SELECT 
-            CAST(inm.cd_estacao AS VARCHAR) as estacao_id,
-            inm.dc_nome as estacao_nome,
-            'INMET' as fonte,
-            NULL as tipo_estacao_id,
-            TRY_CAST(REPLACE(inm.vl_latitude, ',', '.') AS DOUBLE) as lat,  -- Limpa vírgula se houver
-            TRY_CAST(REPLACE(inm.vl_longitude, ',', '.') AS DOUBLE) as lon, -- Limpa vírgula se houver
-            CAST(i.codigo_ibge AS VARCHAR) as codigo_ibge,
-            i.nome_municipio,
-            i.uf_sigla,
-            i.regiao_nome
-        FROM "climate_platform_bronze"."source_inmet" inm
-        JOIN "climate_platform_bronze"."source_ibge" i 
-            ON inm.dc_nome = i.nome_municipio_search;
+            inm.estacao_id, inm.estacao_nome, inm.fonte, inm.tipo_estacao_id, inm.lat, inm.lon,
+            i.codigo_ibge, i.nome_municipio, i.uf_sigla, i.regiao_nome
+        FROM inmet_prepared inm
+        JOIN ibge_cleaned i ON inm.join_key_name = TRIM(UPPER(i.nome_municipio_search))
         """,
         database='climate_platform_silver',
         output_location='s3://climate-platform-athena-results-vinicius/queries/',

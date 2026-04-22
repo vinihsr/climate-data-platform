@@ -3,7 +3,7 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import sys
 from airflow.providers.amazon.aws.operators.glue_crawler import GlueCrawlerOperator
-
+from constants import DS_IBGE_BRONZE
 sys.path.append('/opt/airflow/')
 from scripts.extract_ibge import download_ibge_data
 
@@ -38,5 +38,7 @@ with DAG (
         wait_for_completion=True,     
         dag=dag,          
     )
+
+    trigger_ibge_crawler.out_datasets = [DS_IBGE_BRONZE]
 
     ingest_task >> trigger_ibge_crawler
