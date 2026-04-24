@@ -1,12 +1,10 @@
 from airflow import DAG
-from airflow.sensors.external_task import ExternalTaskSensor
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator
 from airflow.providers.amazon.aws.operators.glue_crawler import GlueCrawlerOperator
 from airflow.providers.amazon.aws.operators.s3 import S3DeleteObjectsOperator
 from datetime import datetime, timedelta
 
 from constants import DS_ANA_BRONZE, DS_INMET_BRONZE, DS_IBGE_BRONZE
-
 
 default_args = {
     'owner': 'vinicius',
@@ -19,35 +17,33 @@ with DAG(
     default_args=default_args,
     schedule=[DS_ANA_BRONZE, DS_INMET_BRONZE, DS_IBGE_BRONZE],
     start_date=datetime(2026, 4, 1),
-    catchup=False
+    catchup=False,
+    tags=['silver', 'transformation']
 ) as dag:
     
     clean_silver_folder = S3DeleteObjectsOperator(
-    task_id="clean_silver_folder",
-    bucket="climate-platform-silver-vinicius",
-    prefix="silver/dim_estacoes/",
-    aws_conn_id="aws_default",
-)
+        task_id="clean_silver_folder",
+        bucket="climate-platform-silver-vinicius",
+        prefix="dim_estacoes/",
+        aws_conn_id="aws_default",
+    )
 
     drop_dim_estacoes = AthenaOperator(
-    task_id='drop_dim_estacoes',
-    query="DROP TABLE IF EXISTS climate_platform_silver.dim_estacoes;",
-    database='climate_platform_silver',   
-    output_location='s3://climate-platform-athena-results-vinicius/queries/',
-    aws_conn_id='aws_default'
-)
+        task_id='drop_dim_estacoes',
+        query="DROP TABLE IF EXISTS climate_platform_silver.dim_estacoes;",
+        database='climate_platform_silver',   
+        output_location='s3://climate-platform-athena-results-vinicius/results/',
+        aws_conn_id='aws_default'
+    )
     
     create_dim_estacoes = AthenaOperator(
         task_id='create_dim_estacoes',
         query="""
-            CREATE TABLE climate_platform_silver.dim_estacoes
-        WITH (
-        format = 'PARQUET',
-        external_location = 's3://climate-platform-silver-vinicius/silver/dim_estacoes/'
-        ) AS
+        CREATE TABLE climate_platform_silver.dim_estacoes
+        AS
         WITH 
         ibge_cleaned AS (
-            SELECT 
+            SELECT DISTINCT
                 SUBSTR(TRIM(CAST(codigo_ibge AS VARCHAR)), 1, 6) as join_key,
                 codigo_ibge,
                 nome_municipio,
@@ -73,8 +69,8 @@ with DAG(
                 dc_nome as estacao_nome,
                 'INMET' as fonte,
                 NULL as tipo_estacao_id,
-                TRY_CAST(REPLACE(vl_latitude, ',', '.') AS DOUBLE) as lat,
-                TRY_CAST(REPLACE(vl_longitude, ',', '.') AS DOUBLE) as lon,
+                TRY_CAST(vl_latitude AS DOUBLE) as lat,
+                TRY_CAST(vl_longitude AS DOUBLE) as lon,
                 TRIM(UPPER(dc_nome)) as join_key_name
             FROM "climate_platform_bronze"."source_inmet"
         )
@@ -93,14 +89,16 @@ with DAG(
         JOIN ibge_cleaned i ON inm.join_key_name = TRIM(UPPER(i.nome_municipio_search))
         """,
         database='climate_platform_silver',
-        output_location='s3://climate-platform-athena-results-vinicius/queries/',
+        output_location='s3://climate-platform-athena-results-vinicius/results/',
+        workgroup='climate_workgroup_vinicius',
         aws_conn_id='aws_default' 
     )
 
-
     trigger_silver_crawler = GlueCrawlerOperator(
         task_id='trigger_silver_crawler',
-        config={'Name': 'silver_data_crawler'}
+        config={'Name': 'dim_estacoes_silver_crawler'},
+        aws_conn_id='aws_default',
+        wait_for_completion=True
     )
 
     clean_silver_folder >> drop_dim_estacoes >> create_dim_estacoes >> trigger_silver_crawler

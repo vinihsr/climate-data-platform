@@ -27,7 +27,7 @@ with DAG (
     ingest_task = PythonOperator(
         task_id='ingest_ibge_to_bronze',
         python_callable=download_ibge_data,
-        op_kwargs={'region': 'S'} 
+        op_kwargs={'execution_date': "{{ ds }}"}    
     )
 
     trigger_ibge_crawler = GlueCrawlerOperator(

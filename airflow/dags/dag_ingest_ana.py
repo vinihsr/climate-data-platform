@@ -27,7 +27,7 @@ with DAG (
     ingest_task = PythonOperator(
         task_id='ingest_ana_to_bronze',
         python_callable=download_ana_data,
-        op_kwargs={'region': 'S'} 
+        op_kwargs={'execution_date': "{{ ds }}"}    
     )
 
     trigger_ana_crawler = GlueCrawlerOperator(
