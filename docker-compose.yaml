@@ -40,6 +40,7 @@ services:
       - ./airflow/scripts:/opt/airflow/scripts
       - ./requirements.txt:/requirements.txt
       - ./airflow/logs:/opt/airflow/logs  
+      - /home/vinicius/Documents/DataEngineering/climate_platform/2025:/opt/airflow/2025
     ports:
       - "8080:8080"
     env_file:
@@ -63,6 +64,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/scripts:/opt/airflow/scripts
       - ./airflow/logs:/opt/airflow/logs  
+      - /home/vinicius/Documents/DataEngineering/climate_platform/2025:/opt/airflow/2025
     env_file:
       - .env
     environment:
@@ -83,6 +85,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/scripts:/opt/airflow/scripts
       - ./airflow/logs:/opt/airflow/logs
+      - /home/vinicius/Documents/DataEngineering/climate_platform/2025:/opt/airflow/2025
     env_file:
       - .env
     environment:

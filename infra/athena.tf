@@ -1,5 +1,5 @@
 resource "aws_athena_workgroup" "main" {
-  name = "climate_workgroup_${var.user_name}" # Suffix for uniqueness
+  name = "climate_workgroup_${var.user_name}" 
 
   configuration {
     enforce_workgroup_configuration    = true

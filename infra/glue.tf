@@ -2,9 +2,9 @@
 locals {
   # Standardizing keys to match the 'source=name' pattern
   bronze_crawlers = {
-    "inmet" = "bronze/source=inmet/"
-    "ibge"  = "bronze/source=ibge/"
-    "ana"   = "bronze/source=ana/"
+    "inmet" = "bronze/inmet/"
+    "ibge"  = "bronze/ibge/"
+    "ana"   = "bronze/ana/"
   }
 
   silver_crawlers = {
@@ -23,8 +23,7 @@ resource "aws_glue_crawler" "bronze_crawlers" {
   role          = aws_iam_role.glue_role.arn
 
   s3_target {
-    # Direct mapping: crawler 'inmet' looks only at 'source=inmet/'
-    path = "s3://climate-platform-bronze-${var.user_name}/source=${each.key}/"
+    path = "s3://climate-platform-bronze-${var.user_name}/${each.key}/"
   }
 
   configuration = jsonencode({
